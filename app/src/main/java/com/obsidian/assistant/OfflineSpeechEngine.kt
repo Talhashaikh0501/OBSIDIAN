@@ -51,7 +51,7 @@ class OfflineSpeechEngine(context: Context) {
                 try {
                     connection.connect()
                     if (connection.responseCode !in 200..299) {
-                        throw IllegalStateException("Model download failed: HTTP §{connection.responseCode}")
+                        throw IllegalStateException("Model download failed for " + model.name + ": HTTP " + connection.responseCode + " " + connection.responseMessage)
                     }
                     connection.inputStream.use { input ->
                         partial.outputStream().buffered().use { output -> input.copyTo(output) }
