@@ -46,10 +46,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1") {
-        exclude(
-            group = "com.github.k2-fsa.sherpa-onnx",
-            module = "sherpa-onnx-jvm"
-        )
+        // The Android AAR already contains the Kotlin/JVM API classes.
+        // Exclude the separate JVM JAR to prevent duplicate classes.
+        exclude(module = "sherpa-onnx-jvm")
     }
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
