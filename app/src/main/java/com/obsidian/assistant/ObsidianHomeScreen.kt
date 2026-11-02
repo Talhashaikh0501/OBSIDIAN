@@ -1,6 +1,18 @@
 
 package com.obsidian.assistant
 
+import androidx.core.content.ContextCompat
+
+import androidx.compose.ui.platform.LocalContext
+
+import androidx.activity.result.contract.ActivityResultContracts
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+
+import android.content.pm.PackageManager
+
+import android.Manifest
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -60,7 +72,20 @@ private val DimSilver = Color(0xFF697985)
 
 @Composable
 fun ObsidianHomeScreen() {
-    var isAwake by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var micPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        micPermissionGranted = granted
+    }
 
     val transition = rememberInfiniteTransition(label = "obsidian_core")
 
@@ -214,13 +239,13 @@ fun ObsidianHomeScreen() {
                         Modifier
                             .size(7.dp)
                             .background(
-                                if (isAwake) IceBlue else DimSilver,
+                                if (micPermissionGranted) IceBlue else DimSilver,
                                 CircleShape
                             )
                     )
 
                     Text(
-                        if (isAwake) "AWAKENED" else "DORMANT",
+                        if (micPermissionGranted) "MIC READY" else "DORMANT",
                         color = LiquidSilver,
                         fontSize = 9.sp,
                         letterSpacing = 2.sp
@@ -417,7 +442,7 @@ fun ObsidianHomeScreen() {
             Spacer(Modifier.height(9.dp))
 
             Text(
-                if (isAwake) "SYSTEM AWAKE  /  AWAITING COMMAND"
+                if (micPermissionGranted) "MICROPHONE ACCESS GRANTED  /  OFFLINE ENGINE NEXT"
                 else "AN INTELLIGENCE WITHOUT LIMITS",
                 color = DimSilver,
                 fontSize = 8.sp,
@@ -447,11 +472,15 @@ fun ObsidianHomeScreen() {
                         color = ChromeWhite.copy(alpha = 0.55f),
                         shape = RoundedCornerShape(14.dp)
                     )
-                    .clickable { isAwake = !isAwake },
+                    .clickable {
+                        if (!micPermissionGranted) {
+                            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (isAwake) "DEACTIVATE SYSTEM" else "AWAKEN OBSIDIAN",
+                    if (micPermissionGranted) "MICROPHONE ACCESS GRANTED" else "ENABLE VOICE ACCESS",
                     color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
@@ -462,7 +491,7 @@ fun ObsidianHomeScreen() {
             Spacer(Modifier.height(13.dp))
 
             Text(
-                "TOUCH TO ${if (isAwake) "DEACTIVATE" else "INITIATE"}",
+                if (micPermissionGranted) "OFFLINE SPEECH ENGINE IS THE NEXT STEP" else "TAP TO GRANT MICROPHONE PERMISSION",
                 color = DimSilver,
                 fontSize = 8.sp,
                 letterSpacing = 2.sp
