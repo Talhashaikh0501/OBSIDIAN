@@ -13,11 +13,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class OfflineSpeechEngine(context: Context) {
-    private val modelDir = File(context.filesDir, "models/whisper-tiny")
+    private val modelDir = File(context.filesDir, "models/whisper-small")
     private val modelFiles = listOf(
-        ModelFile("tiny-encoder.int8.onnx", 5_000_000L),
-        ModelFile("tiny-decoder.int8.onnx", 30_000_000L),
-        ModelFile("tiny-tokens.txt", 100_000L)
+        ModelFile("small-encoder.int8.onnx", 100_000_000L),
+        ModelFile("small-decoder.int8.onnx", 240_000_000L),
+        ModelFile("small-tokens.txt", 100_000L)
     )
 
     fun isModelReady(): Boolean = modelFiles.all { model ->
@@ -40,10 +40,10 @@ class OfflineSpeechEngine(context: Context) {
                 onProgress("DOWNLOADING VOICE MODEL ${index + 1}/3")
 
                 val connection = (URL(
-                    "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny/resolve/main/${model.name}"
+                    "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/${model.name}"
                 ).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 20_000
-                    readTimeout = 60_000
+                    readTimeout = 180_000
                     instanceFollowRedirects = true
                     setRequestProperty("User-Agent", "OBSIDIAN-Android")
                 }
@@ -78,12 +78,12 @@ class OfflineSpeechEngine(context: Context) {
             featConfig = FeatureConfig(sampleRate = 16_000, featureDim = 80),
             modelConfig = OfflineModelConfig(
                 whisper = OfflineWhisperModelConfig(
-                    encoder = File(modelDir, "tiny-encoder.int8.onnx").absolutePath,
-                    decoder = File(modelDir, "tiny-decoder.int8.onnx").absolutePath,
+                    encoder = File(modelDir, "small-encoder.int8.onnx").absolutePath,
+                    decoder = File(modelDir, "small-decoder.int8.onnx").absolutePath,
                     language = "",
                     task = "transcribe"
                 ),
-                tokens = File(modelDir, "tiny-tokens.txt").absolutePath,
+                tokens = File(modelDir, "small-tokens.txt").absolutePath,
                 numThreads = 2,
                 provider = "cpu",
                 modelType = "whisper"
