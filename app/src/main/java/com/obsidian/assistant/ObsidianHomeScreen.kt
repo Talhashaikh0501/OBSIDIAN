@@ -10,6 +10,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 
 import android.content.pm.PackageManager
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 import android.Manifest
 
@@ -85,6 +89,76 @@ fun ObsidianHomeScreen() {
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         micPermissionGranted = granted
+    }
+
+    val speechEngine = remember(context) { OfflineSpeechEngine(context.applicationContext) }
+    val microphoneRecorder = remember { MicrophoneRecorder() }
+    val scope = rememberCoroutineScope()
+    var engineReady by remember { mutableStateOf(speechEngine.isModelReady()) }
+    var isRecording by remember { mutableStateOf(false) }
+    var isBusy by remember { mutableStateOf(false) }
+    var engineStatus by remember {
+        mutableStateOf(if (engineReady) "OFFLINE VOICE ENGINE READY" else "FIRST SETUP REQUIRES INTERNET")
+    }
+    var transcript by remember { mutableStateOf("") }
+
+    DisposableEffect(Unit) {
+        onDispose { microphoneRecorder.cancel() }
+    }
+
+    val handleActivation: () -> Unit = {
+        when {
+            !micPermissionGranted -> microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            isBusy -> Unit
+            !engineReady -> {
+                isBusy = true
+                engineStatus = "PREPARING OFFLINE VOICE ENGINE"
+                scope.launch {
+                    try {
+                        speechEngine.prepare { message ->
+                            scope.launch(Dispatchers.Main) { engineStatus = message }
+                        }
+                        engineReady = true
+                        engineStatus = "OFFLINE VOICE ENGINE READY"
+                    } catch (error: Exception) {
+                        engineStatus = error.message?.take(90) ?: "VOICE MODEL DOWNLOAD FAILED"
+                    } finally {
+                        isBusy = false
+                    }
+                }
+            }
+            !isRecording -> {
+                try {
+                    microphoneRecorder.start()
+                    transcript = ""
+                    isRecording = true
+                    engineStatus = "LISTENING — TAP TO STOP"
+                } catch (error: Exception) {
+                    engineStatus = error.message ?: "MICROPHONE START FAILED"
+                }
+            }
+            else -> {
+                isRecording = false
+                val samples = microphoneRecorder.stop()
+                if (samples.isEmpty()) {
+                    engineStatus = "NO AUDIO CAPTURED — TRY AGAIN"
+                } else {
+                    isBusy = true
+                    engineStatus = "PROCESSING SPEECH ON DEVICE"
+                    scope.launch {
+                        try {
+                            val result = speechEngine.transcribe(samples)
+                            transcript = result.ifBlank { "No speech detected. Please try again." }
+                            engineStatus = "LOCAL TRANSCRIPTION COMPLETE"
+                        } catch (error: Exception) {
+                            engineStatus = error.message?.take(90) ?: "TRANSCRIPTION FAILED"
+                        } finally {
+                            isBusy = false
+                        }
+                    }
+                }
+            }
+        }
     }
 
     val transition = rememberInfiniteTransition(label = "obsidian_core")
@@ -245,7 +319,12 @@ fun ObsidianHomeScreen() {
                     )
 
                     Text(
-                        if (micPermissionGranted) "MIC READY" else "DORMANT",
+                        when {
+                            isRecording -> "LISTENING"
+                            engineReady -> "VOICE READY"
+                            micPermissionGranted -> "MIC READY"
+                            else -> "DORMANT"
+                        },
                         color = LiquidSilver,
                         fontSize = 9.sp,
                         letterSpacing = 2.sp
@@ -442,13 +521,24 @@ fun ObsidianHomeScreen() {
             Spacer(Modifier.height(9.dp))
 
             Text(
-                if (micPermissionGranted) "MICROPHONE ACCESS GRANTED  /  OFFLINE ENGINE NEXT"
-                else "AN INTELLIGENCE WITHOUT LIMITS",
-                color = DimSilver,
+                engineStatus,
+                color = if (isRecording) IceBlue else DimSilver,
                 fontSize = 8.sp,
-                letterSpacing = 2.sp,
-                textAlign = TextAlign.Center
+                letterSpacing = 1.5.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 2
             )
+
+            if (transcript.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    transcript,
+                    color = ChromeWhite,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 3
+                )
+            }
 
             Spacer(Modifier.weight(1f))
 
@@ -472,15 +562,17 @@ fun ObsidianHomeScreen() {
                         color = ChromeWhite.copy(alpha = 0.55f),
                         shape = RoundedCornerShape(14.dp)
                     )
-                    .clickable {
-                        if (!micPermissionGranted) {
-                            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    },
+                    .clickable { handleActivation() },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (micPermissionGranted) "MICROPHONE ACCESS GRANTED" else "ENABLE VOICE ACCESS",
+                    when {
+                        isBusy -> "INITIALIZING..."
+                        isRecording -> "TAP TO STOP"
+                        engineReady -> "TAP TO SPEAK"
+                        micPermissionGranted -> "PREPARE OFFLINE VOICE"
+                        else -> "ENABLE VOICE ACCESS"
+                    },
                     color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
@@ -491,7 +583,12 @@ fun ObsidianHomeScreen() {
             Spacer(Modifier.height(13.dp))
 
             Text(
-                if (micPermissionGranted) "OFFLINE SPEECH ENGINE IS THE NEXT STEP" else "TAP TO GRANT MICROPHONE PERMISSION",
+                when {
+                    isRecording -> "SPEAK NOW • MAXIMUM 60 SECONDS"
+                    engineReady -> "ENGLISH + HINDI • ON-DEVICE PROCESSING"
+                    micPermissionGranted -> "ONE-TIME MODEL DOWNLOAD • APPROX. 100 MB"
+                    else -> "TAP TO GRANT MICROPHONE PERMISSION"
+                },
                 color = DimSilver,
                 fontSize = 8.sp,
                 letterSpacing = 2.sp
