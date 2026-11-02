@@ -45,7 +45,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1")
+    implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1") {
+        exclude(
+            group = "com.github.k2-fsa.sherpa-onnx",
+            module = "sherpa-onnx-jvm"
+        )
+    }
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
