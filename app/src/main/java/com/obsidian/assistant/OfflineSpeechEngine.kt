@@ -30,17 +30,17 @@ class OfflineSpeechEngine(context: Context) {
             modelFiles.forEachIndexed { index, model ->
                 val destination = File(modelDir, model.name)
                 if (destination.exists() && destination.length() >= model.minimumBytes) {
-                    onProgress("VOICE MODEL §{index + 1}/3 READY")
+                    onProgress("VOICE MODEL ${index + 1}/3 READY")
                     return@forEachIndexed
                 }
 
                 destination.delete()
-                val partial = File(modelDir, "§{model.name}.part")
+                val partial = File(modelDir, "${model.name}.part")
                 partial.delete()
-                onProgress("DOWNLOADING VOICE MODEL §{index + 1}/3")
+                onProgress("DOWNLOADING VOICE MODEL ${index + 1}/3")
 
                 val connection = (URL(
-                    "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny/resolve/main/§{model.name}"
+                    "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny/resolve/main/${model.name}"
                 ).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 20_000
                     readTimeout = 60_000
@@ -57,10 +57,10 @@ class OfflineSpeechEngine(context: Context) {
                         partial.outputStream().buffered().use { output -> input.copyTo(output) }
                     }
                     if (partial.length() < model.minimumBytes) {
-                        throw IllegalStateException("Downloaded model file is incomplete: §{model.name}")
+                        throw IllegalStateException("Downloaded model file is incomplete: ${model.name}")
                     }
                     if (!partial.renameTo(destination)) {
-                        throw IllegalStateException("Could not save model file: §{model.name}")
+                        throw IllegalStateException("Could not save model file: ${model.name}")
                     }
                 } finally {
                     connection.disconnect()
