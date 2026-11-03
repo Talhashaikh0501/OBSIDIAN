@@ -154,7 +154,7 @@ class LocalAiEngine(context: Context) {
     }
 
     private companion object {
-        const val MODEL_BYTES = 1_282_439_328L
+        const val MODEL_BYTES = 1_282_439_264L
         const val MODEL_URL =
             "https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf?download=true"
 
