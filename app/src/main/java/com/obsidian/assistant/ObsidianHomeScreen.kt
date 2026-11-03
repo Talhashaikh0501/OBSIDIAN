@@ -222,7 +222,7 @@ fun ObsidianHomeScreen() {
                                     localAiStatus = if (memoryCommand != null) {
                                         "LOCAL MEMORY COMMAND COMPLETE"
                                     } else {
-                                        "QWEN3 COMPLETE • ${localAiEngine.lastInferenceDurationMs} ms"
+                                        "QWEN3 • ${localAiEngine.lastInferenceDurationMs} ms • ${"%.1f".format(localAiEngine.lastTokensPerSecond)} TOK/S"
                                     }
                                     if (neuralReady) {
                                         neuralSpeaking = true
