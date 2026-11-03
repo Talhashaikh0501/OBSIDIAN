@@ -127,13 +127,13 @@ class LocalAiEngine(context: Context) {
         }
     }
 
-    suspend fun think(userText: String): String {
+    suspend fun think(userText: String, memoryContext: String = ""): String {
         val activeModel = model ?: error("LOCAL AI MODEL IS NOT LOADED")
         require(userText.isNotBlank()) { "I DID NOT RECEIVE A COMMAND" }
 
         val result = Llama.complete(
             model = activeModel,
-            prompt = userText.trim() + "\n/no_think",
+            prompt = buildString {\n                if (memoryContext.isNotBlank()) {\n                    appendLine("Relevant information from previous conversations:")\n                    appendLine(memoryContext.takeLast(3500))\n                    appendLine()\n                }\n                appendLine("Current user message:")\n                appendLine(userText.trim())\n                append("/no_think")\n            },
             systemPrompt = SYSTEM_PROMPT,
             maxTokens = 160
         )
