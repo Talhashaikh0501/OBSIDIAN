@@ -30,6 +30,10 @@ class LocalAiEngine(context: Context) {
     var lastInferenceDurationMs: Long = 0L
         private set
 
+    @Volatile
+    var lastTokensPerSecond: Float = 0f
+        private set
+
     fun isModelDownloaded(): Boolean =
         modelFile.exists() && modelFile.length() == MODEL_BYTES
 
@@ -118,7 +122,7 @@ class LocalAiEngine(context: Context) {
                 modelPath = modelFile.absolutePath,
                 config = LlamaConfig(
                     contextSize = 2048,
-                    threads = 2,
+                    threads = 4,
                     gpuLayers = 0,
                     temperature = 0.65f,
                     topP = 0.85f,
@@ -152,6 +156,7 @@ class LocalAiEngine(context: Context) {
             maxTokens = 120
         )
         lastInferenceDurationMs = android.os.SystemClock.elapsedRealtime() - inferenceStartedAt
+        lastTokensPerSecond = result.tokensPerSecond
 
         val answer = result.text
             .substringAfter("</think>", result.text)
