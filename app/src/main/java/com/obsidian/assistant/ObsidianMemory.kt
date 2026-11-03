@@ -142,9 +142,13 @@ class ObsidianMemory(context: Context) {
         return null
     }
 
-    suspend fun buildContext(maxMessages: Int = 8): String {
+    suspend fun buildContext(
+        maxMessages: Int = 8,
+        excludeLatestMessage: Boolean = false
+    ): String {
         val memories = dao.getRecentMemories(20).asReversed()
-        val messages = dao.getRecentMessages(maxMessages).asReversed()
+        val recentMessages = dao.getRecentMessages(if (excludeLatestMessage) maxMessages + 1 else maxMessages).asReversed()
+        val messages = if (excludeLatestMessage) recentMessages.dropLast(1) else recentMessages
 
         return buildString {
             if (memories.isNotEmpty()) {
