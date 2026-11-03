@@ -661,7 +661,7 @@ fun ObsidianHomeScreen() {
                     when {
                         neuralBusy -> "PREPARING NEURAL VOICE..."
                         neuralSpeaking -> "OBSIDIAN IS SPEAKING"
-                        neuralReady -> "TEST NEURAL ROBOTIC VOICE"
+                        neuralReady -> "TEST NEURAL VOICE"
                         else -> "INSTALL NEURAL VOICE • 145 MB"
                     },
                     color = if (neuralReady || neuralBusy) ChromeWhite else LiquidSilver,
