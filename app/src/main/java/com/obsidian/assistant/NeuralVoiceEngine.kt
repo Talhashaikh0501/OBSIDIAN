@@ -62,7 +62,7 @@ class NeuralVoiceEngine(context: Context) {
                 assets.forEachIndexed { index, asset ->
                     val destination = File(modelDirectory, asset.fileName)
                     if (!destination.exists() || destination.length() < asset.minimumBytes) {
-                        onProgress("DOWNLOADING VOICE MODEL \${index + 1}/\${assets.size}")
+                        onProgress("DOWNLOADING VOICE MODEL ${index + 1}/${assets.size}")
                         downloadAsset(asset, destination, onProgress)
                     }
                 }
@@ -85,6 +85,7 @@ class NeuralVoiceEngine(context: Context) {
             }
             val config = OfflineTtsConfig().apply {
                 model = modelConfig
+                maxNumSentences = 5
             }
 
             onProgress("LOADING NEURAL VOICE INTO MEMORY")
@@ -108,7 +109,7 @@ class NeuralVoiceEngine(context: Context) {
         partial.delete()
 
         val url = URL(
-            "https://huggingface.co/csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/resolve/main/\${asset.fileName}"
+            "https://huggingface.co/csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11/resolve/main/${asset.fileName}"
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = 20_000
@@ -135,9 +136,9 @@ class NeuralVoiceEngine(context: Context) {
                         downloaded += count
                         if (downloaded - lastReported >= 2L * 1024L * 1024L) {
                             val progress = if (totalBytes > 0L) {
-                                "DOWNLOADING \${asset.fileName} • \${(downloaded * 100 / totalBytes).toInt()}%"
+                                "DOWNLOADING ${asset.fileName} • ${(downloaded * 100 / totalBytes).toInt()}%"
                             } else {
-                                "DOWNLOADING \${asset.fileName}"
+                                "DOWNLOADING ${asset.fileName}"
                             }
                             onProgress(progress)
                             lastReported = downloaded
@@ -147,11 +148,11 @@ class NeuralVoiceEngine(context: Context) {
             }
 
             if (partial.length() < asset.minimumBytes) {
-                error("INCOMPLETE MODEL FILE: \${asset.fileName}")
+                error("INCOMPLETE MODEL FILE: ${asset.fileName}")
             }
             if (destination.exists()) destination.delete()
             if (!partial.renameTo(destination)) {
-                error("CANNOT SAVE MODEL FILE: \${asset.fileName}")
+                error("CANNOT SAVE MODEL FILE: ${asset.fileName}")
             }
         } finally {
             connection.disconnect()
