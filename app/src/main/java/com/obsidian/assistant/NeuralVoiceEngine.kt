@@ -45,6 +45,10 @@ class NeuralVoiceEngine(context: Context) {
         ModelAsset("voice.bin", 100_000L)
     )
 
+    fun isModelDownloaded(): Boolean = assets.all { asset ->
+        File(modelDirectory, asset.fileName).let { it.exists() && it.length() >= asset.minimumBytes }
+    }
+
     suspend fun prepare(onProgress: (String) -> Unit = {}) {
         withContext(Dispatchers.IO) {
             if (isReady) return@withContext
