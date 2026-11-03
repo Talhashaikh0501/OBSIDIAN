@@ -94,6 +94,7 @@ fun ObsidianHomeScreen() {
     val speechEngine = remember(context) { OfflineSpeechEngine(context.applicationContext) }
     val voiceEngine = remember(context) { OfflineVoiceEngine(context.applicationContext) }
     val neuralVoiceEngine = remember(context) { NeuralVoiceEngine(context.applicationContext) }
+    val localAiEngine = remember(context) { LocalAiEngine(context.applicationContext) }
     val microphoneRecorder = remember { MicrophoneRecorder() }
     val scope = rememberCoroutineScope()
     var engineReady by remember { mutableStateOf(speechEngine.isModelReady()) }
@@ -110,6 +111,11 @@ fun ObsidianHomeScreen() {
     var neuralBusy by remember { mutableStateOf(false) }
     var neuralSpeaking by remember { mutableStateOf(false) }
     var neuralStatus by remember { mutableStateOf("ROBOTIC VOICE NOT INSTALLED • APPROX. 145 MB") }
+    var localAiReady by remember { mutableStateOf(false) }
+    var localAiBusy by remember { mutableStateOf(false) }
+    var localAiStatus by remember {
+        mutableStateOf(if (localAiEngine.isModelDownloaded()) "QWEN3 SAVED • TAP TO LOAD" else "LOCAL AI BRAIN NOT INSTALLED")
+    }
 
     DisposableEffect(Unit) {
         voiceEngine.initialize { ready, message ->
@@ -122,6 +128,7 @@ fun ObsidianHomeScreen() {
             microphoneRecorder.cancel()
             voiceEngine.shutdown()
             neuralVoiceEngine.shutdown()
+            localAiEngine.shutdown()
         }
     }
 
@@ -169,6 +176,27 @@ fun ObsidianHomeScreen() {
                             val result = speechEngine.transcribe(samples)
                             transcript = result.ifBlank { "No speech detected. Please try again." }
                             engineStatus = "LOCAL TRANSCRIPTION COMPLETE"
+                            if (result.isNotBlank() && localAiReady) {
+                                localAiBusy = true
+                                localAiStatus = "OBSIDIAN IS THINKING"
+                                try {
+                                    val answer = localAiEngine.think(result)
+                                    transcript = "$result\n\n$answer"
+                                    localAiStatus = "LOCAL RESPONSE GENERATED"
+                                    if (neuralReady) {
+                                        neuralSpeaking = true
+                                        neuralVoiceEngine.speak(answer)
+                                        neuralSpeaking = false
+                                    } else if (voiceReady) {
+                                        voiceEngine.speak(answer)
+                                    }
+                                } catch (aiError: Exception) {
+                                    localAiStatus = aiError.message?.take(64) ?: "LOCAL AI INFERENCE FAILED"
+                                } finally {
+                                    neuralSpeaking = false
+                                    localAiBusy = false
+                                }
+                            }
                         } catch (error: Exception) {
                             engineStatus = error.message?.take(90) ?: "TRANSCRIPTION FAILED"
                         } finally {
@@ -299,7 +327,7 @@ fun ObsidianHomeScreen() {
                 .padding(horizontal = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(32.dp))
 
             // HEADER
             Row(
@@ -365,7 +393,7 @@ fun ObsidianHomeScreen() {
 
             // CENTRAL SILVER ENTITY
             Box(
-                modifier = Modifier.size(width = 330.dp, height = 370.dp),
+                modifier = Modifier.size(width = 330.dp, height = 330.dp),
                 contentAlignment = Alignment.Center
             ) {
                 // ROTATING ENERGY SYSTEM
@@ -460,7 +488,7 @@ fun ObsidianHomeScreen() {
                 // SILVER SURFER PORTRAIT
                 Box(
                     modifier = Modifier
-                        .size(width = 265.dp, height = 335.dp)
+                        .size(width = 265.dp, height = 295.dp)
                         .graphicsLayer {
                             scaleX = 0.96f * pulse
                             scaleY = 0.96f * pulse
@@ -667,6 +695,80 @@ fun ObsidianHomeScreen() {
                     color = if (neuralReady || neuralBusy) ChromeWhite else LiquidSilver,
                     fontSize = 8.sp,
                     letterSpacing = 1.7.sp
+                )
+            }
+
+            Spacer(Modifier.height(5.dp))
+            Text(
+                localAiStatus,
+                color = if (localAiReady) IceBlue else DimSilver,
+                fontSize = 7.sp,
+                letterSpacing = 1.1.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+
+            Spacer(Modifier.height(5.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF111820))
+                    .border(1.dp, LiquidSilver.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                    .clickable(enabled = !localAiBusy && !neuralSpeaking) {
+                        if (!localAiReady) {
+                            localAiBusy = true
+                            localAiStatus = "PREPARING QWEN3 LOCAL BRAIN"
+                            scope.launch {
+                                try {
+                                    localAiEngine.prepare { message ->
+                                        scope.launch(Dispatchers.Main) { localAiStatus = message }
+                                    }
+                                    localAiReady = true
+                                    localAiStatus = "QWEN3 1.7B • LOCAL BRAIN ONLINE"
+                                } catch (error: Exception) {
+                                    localAiStatus = error.message?.take(64) ?: "LOCAL AI SETUP FAILED"
+                                } finally {
+                                    localAiBusy = false
+                                }
+                            }
+                        } else {
+                            localAiBusy = true
+                            localAiStatus = "RUNNING LOCAL AI SELF-TEST"
+                            scope.launch {
+                                try {
+                                    val answer = localAiEngine.think("Introduce yourself in one short sentence.")
+                                    transcript = answer
+                                    localAiStatus = "LOCAL AI TEST COMPLETE"
+                                    if (neuralReady) {
+                                        neuralSpeaking = true
+                                        neuralVoiceEngine.speak(answer)
+                                        neuralSpeaking = false
+                                    } else if (voiceReady) {
+                                        voiceEngine.speak(answer)
+                                    }
+                                } catch (error: Exception) {
+                                    localAiStatus = error.message?.take(64) ?: "LOCAL AI TEST FAILED"
+                                } finally {
+                                    neuralSpeaking = false
+                                    localAiBusy = false
+                                }
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    when {
+                        localAiBusy -> "INITIALIZING LOCAL AI..."
+                        localAiReady -> "TEST LOCAL AI BRAIN"
+                        localAiEngine.isModelDownloaded() -> "LOAD QWEN3 • MODEL ALREADY SAVED"
+                        else -> "INSTALL LOCAL AI BRAIN • 1.28 GB"
+                    },
+                    color = if (localAiReady || localAiBusy) ChromeWhite else LiquidSilver,
+                    fontSize = 8.sp,
+                    letterSpacing = 1.6.sp
                 )
             }
 
