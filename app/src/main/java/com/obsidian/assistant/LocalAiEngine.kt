@@ -33,6 +33,13 @@ class LocalAiEngine(context: Context) {
         withContext(Dispatchers.IO) {
             if (isReady && model?.isLoaded == true) return@withContext
 
+            val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            if (memoryInfo.availMem < 1_800_000_000L) {
+                error("CLOSE OTHER APPS • QWEN3 NEEDS ABOUT 1.8 GB AVAILABLE RAM")
+            }
+
             if (!isModelDownloaded()) {
                 val parent = modelDirectory
                 if (!parent.exists() && !parent.mkdirs()) {
@@ -100,13 +107,6 @@ class LocalAiEngine(context: Context) {
                     connection.disconnect()
                     partial.delete()
                 }
-            }
-
-            val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            val memoryInfo = ActivityManager.MemoryInfo()
-            activityManager.getMemoryInfo(memoryInfo)
-            if (memoryInfo.availMem < 1_800_000_000L) {
-                error("CLOSE OTHER APPS • QWEN3 NEEDS ABOUT 1.8 GB AVAILABLE RAM")
             }
 
             onProgress("LOADING QWEN3 INTO MEMORY")
