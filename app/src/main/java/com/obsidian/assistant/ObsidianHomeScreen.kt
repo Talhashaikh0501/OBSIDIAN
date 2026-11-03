@@ -119,9 +119,9 @@ fun ObsidianHomeScreen() {
                             scope.launch(Dispatchers.Main) { engineStatus = message }
                         }
                         engineReady = true
-                        engineStatus = "OFFLINE VOICE ENGINE READY"
+                        engineStatus = "APEX OFFLINE VOICE READY"
                     } catch (error: Exception) {
-                        engineStatus = error.message?.take(90) ?: "VOICE MODEL DOWNLOAD FAILED"
+                        engineStatus = error.message?.take(90) ?: "APEX MODEL DOWNLOAD FAILED"
                     } finally {
                         isBusy = false
                     }
