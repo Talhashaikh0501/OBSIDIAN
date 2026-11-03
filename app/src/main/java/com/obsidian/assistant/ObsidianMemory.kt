@@ -143,7 +143,7 @@ class ObsidianMemory(context: Context) {
     }
 
     suspend fun buildContext(
-        maxMessages: Int = 8,
+        maxMessages: Int = 6,
         excludeLatestMessage: Boolean = false
     ): String {
         val memories = dao.getRecentMemories(20).asReversed()
@@ -160,7 +160,7 @@ class ObsidianMemory(context: Context) {
                 appendLine("RECENT CONVERSATION:")
                 messages.forEach { appendLine("${it.role}: ${it.content}") }
             }
-        }.takeLast(3500)
+        }.takeLast(2200)
     }
 
     suspend fun status(): String {
