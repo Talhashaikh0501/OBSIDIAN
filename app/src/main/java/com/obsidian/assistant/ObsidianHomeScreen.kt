@@ -124,6 +124,24 @@ fun ObsidianHomeScreen() {
                 voiceStatus = message
             }
         }
+        // Automatically restore our Supertonic voice after every app launch.
+        if (neuralVoiceEngine.isModelDownloaded()) {
+            neuralBusy = true
+            neuralStatus = "RESTORING SUPERTONIC NEURAL VOICE"
+            scope.launch {
+                try {
+                    neuralVoiceEngine.prepare { message ->
+                        scope.launch(Dispatchers.Main) { neuralStatus = message }
+                    }
+                    neuralReady = true
+                    neuralStatus = "SUPERTONIC 3 • MALE VOICE M2 READY"
+                } catch (error: Exception) {
+                    neuralStatus = error.message?.take(80) ?: "NEURAL VOICE RESTORE FAILED"
+                } finally {
+                    neuralBusy = false
+                }
+            }
+        }
         onDispose {
             microphoneRecorder.cancel()
             voiceEngine.shutdown()
@@ -187,8 +205,8 @@ fun ObsidianHomeScreen() {
                                         neuralSpeaking = true
                                         neuralVoiceEngine.speak(answer)
                                         neuralSpeaking = false
-                                    } else if (voiceReady) {
-                                        voiceEngine.speak(answer)
+                                    } else {
+                                        neuralStatus = "SUPERTONIC VOICE IS STILL LOADING • RESPONSE NOT SPOKEN"
                                     }
                                 } catch (aiError: Exception) {
                                     localAiStatus = aiError.message?.take(64) ?: "LOCAL AI INFERENCE FAILED"
@@ -745,8 +763,8 @@ fun ObsidianHomeScreen() {
                                         neuralSpeaking = true
                                         neuralVoiceEngine.speak(answer)
                                         neuralSpeaking = false
-                                    } else if (voiceReady) {
-                                        voiceEngine.speak(answer)
+                                    } else {
+                                        neuralStatus = "SUPERTONIC VOICE IS STILL LOADING • RESPONSE NOT SPOKEN"
                                     }
                                 } catch (error: Exception) {
                                     localAiStatus = error.message?.take(64) ?: "LOCAL AI TEST FAILED"
