@@ -135,7 +135,7 @@ fun ObsidianHomeScreen() {
     val handleActivation: () -> Unit = {
         when {
             !micPermissionGranted -> microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            isBusy -> Unit
+            isBusy || localAiBusy || neuralSpeaking || isSpeaking -> Unit
             !engineReady -> {
                 isBusy = true
                 engineStatus = "PREPARING HINGLISH APEX MODEL"
