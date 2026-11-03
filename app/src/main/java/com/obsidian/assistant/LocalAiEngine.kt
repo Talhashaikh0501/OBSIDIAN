@@ -38,7 +38,7 @@ class LocalAiEngine(context: Context) {
                 }
 
                 val usableBytes = StatFs(parent.absolutePath).availableBytes
-                if (usableBytes < MIN_MODEL_BYTES + 250_000_000L) {
+                if (usableBytes < MODEL_BYTES + 250_000_000L) {
                     error("LOCAL AI NEEDS AT LEAST 1.6 GB FREE STORAGE")
                 }
 
@@ -87,7 +87,7 @@ class LocalAiEngine(context: Context) {
                     if (totalBytes > 0L && partial.length() != totalBytes) {
                         error("QWEN3 DOWNLOAD INCOMPLETE • RETRY INSTALL")
                     }
-                    if (partial.length() < MIN_MODEL_BYTES) {
+                    if (partial.length() != MODEL_BYTES) {
                         error("QWEN3 MODEL FILE IS INCOMPLETE")
                     }
                     if (modelFile.exists()) modelFile.delete()
@@ -124,7 +124,7 @@ class LocalAiEngine(context: Context) {
 
         val result = Llama.complete(
             model = activeModel,
-            prompt = userText.trim(),
+            prompt = userText.trim() + "\\n/no_think",
             systemPrompt = SYSTEM_PROMPT,
             maxTokens = 160
         )
@@ -145,7 +145,7 @@ class LocalAiEngine(context: Context) {
     }
 
     private companion object {
-        const val MIN_MODEL_BYTES = 1_200_000_000L
+        const val MODEL_BYTES = 1_282_439_328L
         const val MODEL_URL =
             "https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf?download=true"
 
