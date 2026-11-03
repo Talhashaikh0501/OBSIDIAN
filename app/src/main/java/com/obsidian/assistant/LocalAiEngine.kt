@@ -133,7 +133,16 @@ class LocalAiEngine(context: Context) {
 
         val result = Llama.complete(
             model = activeModel,
-            prompt = buildString {\n                if (memoryContext.isNotBlank()) {\n                    appendLine("Relevant information from previous conversations:")\n                    appendLine(memoryContext.takeLast(3500))\n                    appendLine()\n                }\n                appendLine("Current user message:")\n                appendLine(userText.trim())\n                append("/no_think")\n            },
+            prompt = buildString {
+                if (memoryContext.isNotBlank()) {
+                    appendLine("Relevant information from previous conversations:")
+                    appendLine(memoryContext.takeLast(3500))
+                    appendLine()
+                }
+                appendLine("Current user message:")
+                appendLine(userText.trim())
+                append("/no_think")
+            },
             systemPrompt = SYSTEM_PROMPT,
             maxTokens = 160
         )
