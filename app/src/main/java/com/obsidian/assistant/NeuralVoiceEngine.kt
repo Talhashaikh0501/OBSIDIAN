@@ -147,6 +147,9 @@ class NeuralVoiceEngine(context: Context) {
                 }
             }
 
+            if (totalBytes > 0L && partial.length() != totalBytes) {
+                error("INCOMPLETE MODEL DOWNLOAD: ${asset.fileName}")
+            }
             if (partial.length() < asset.minimumBytes) {
                 error("INCOMPLETE MODEL FILE: ${asset.fileName}")
             }
