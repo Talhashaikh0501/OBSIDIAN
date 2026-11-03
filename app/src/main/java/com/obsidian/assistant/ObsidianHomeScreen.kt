@@ -93,6 +93,7 @@ fun ObsidianHomeScreen() {
 
     val speechEngine = remember(context) { OfflineSpeechEngine(context.applicationContext) }
     val voiceEngine = remember(context) { OfflineVoiceEngine(context.applicationContext) }
+    val neuralVoiceEngine = remember(context) { NeuralVoiceEngine(context.applicationContext) }
     val microphoneRecorder = remember { MicrophoneRecorder() }
     val scope = rememberCoroutineScope()
     var engineReady by remember { mutableStateOf(speechEngine.isModelReady()) }
@@ -105,6 +106,10 @@ fun ObsidianHomeScreen() {
     var voiceReady by remember { mutableStateOf(false) }
     var voiceStatus by remember { mutableStateOf("INITIALIZING OFFLINE VOICE") }
     var isSpeaking by remember { mutableStateOf(false) }
+    var neuralReady by remember { mutableStateOf(neuralVoiceEngine.isReady) }
+    var neuralBusy by remember { mutableStateOf(false) }
+    var neuralSpeaking by remember { mutableStateOf(false) }
+    var neuralStatus by remember { mutableStateOf("ROBOTIC VOICE NOT INSTALLED • APPROX. 145 MB") }
 
     DisposableEffect(Unit) {
         voiceEngine.initialize { ready, message ->
@@ -116,6 +121,7 @@ fun ObsidianHomeScreen() {
         onDispose {
             microphoneRecorder.cancel()
             voiceEngine.shutdown()
+            neuralVoiceEngine.shutdown()
         }
     }
 
@@ -591,6 +597,76 @@ fun ObsidianHomeScreen() {
                     color = if (voiceReady) ChromeWhite else DimSilver,
                     fontSize = 9.sp,
                     letterSpacing = 2.2.sp
+                )
+            }
+
+            Spacer(Modifier.height(5.dp))
+            Text(
+                neuralStatus,
+                color = if (neuralReady) IceBlue else DimSilver,
+                fontSize = 7.sp,
+                letterSpacing = 1.1.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
+
+            Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF0B1117))
+                    .border(1.dp, IceBlue.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                    .clickable(enabled = !neuralBusy && !neuralSpeaking) {
+                        if (!neuralReady) {
+                            neuralBusy = true
+                            neuralStatus = "PREPARING OFFLINE NEURAL VOICE"
+                            scope.launch {
+                                try {
+                                    neuralVoiceEngine.prepare { message ->
+                                        scope.launch(Dispatchers.Main) { neuralStatus = message }
+                                    }
+                                    neuralReady = true
+                                    neuralStatus = "SUPERTONIC 3 • MALE VOICE M2 READY"
+                                } catch (error: Exception) {
+                                    neuralStatus = error.message?.take(80) ?: "NEURAL VOICE SETUP FAILED"
+                                } finally {
+                                    neuralBusy = false
+                                }
+                            }
+                        } else {
+                            neuralSpeaking = true
+                            scope.launch {
+                                try {
+                                    val success = neuralVoiceEngine.speak(
+                                        "I am Obsidian. Systems are online. State your command."
+                                    )
+                                    neuralStatus = if (success) {
+                                        "SUPERTONIC M2 PLAYBACK COMPLETE"
+                                    } else {
+                                        "NEURAL VOICE PLAYBACK FAILED"
+                                    }
+                                } catch (error: Exception) {
+                                    neuralStatus = error.message?.take(80) ?: "NEURAL VOICE PLAYBACK FAILED"
+                                } finally {
+                                    neuralSpeaking = false
+                                }
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    when {
+                        neuralBusy -> "PREPARING NEURAL VOICE..."
+                        neuralSpeaking -> "OBSIDIAN IS SPEAKING"
+                        neuralReady -> "TEST NEURAL ROBOTIC VOICE"
+                        else -> "INSTALL NEURAL VOICE • 145 MB"
+                    },
+                    color = if (neuralReady || neuralBusy) ChromeWhite else LiquidSilver,
+                    fontSize = 8.sp,
+                    letterSpacing = 1.7.sp
                 )
             }
 
