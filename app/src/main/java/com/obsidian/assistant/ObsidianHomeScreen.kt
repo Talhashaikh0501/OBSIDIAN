@@ -799,7 +799,9 @@ fun ObsidianHomeScreen() {
             ) {
                 Text(
                     when {
-                        isBusy -> "INITIALIZING..."
+                        isBusy -> "PROCESSING..."
+                        localAiBusy -> "OBSIDIAN THINKING..."
+                        neuralSpeaking || isSpeaking -> "OBSIDIAN SPEAKING..."
                         isRecording -> "TAP TO STOP"
                         engineReady -> "TAP TO SPEAK"
                         micPermissionGranted -> "PREPARE APEX VOICE"
