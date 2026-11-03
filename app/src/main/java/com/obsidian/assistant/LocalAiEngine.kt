@@ -25,7 +25,7 @@ class LocalAiEngine(context: Context) {
         private set
 
     fun isModelDownloaded(): Boolean =
-        modelFile.exists() && modelFile.length() >= MIN_MODEL_BYTES
+        modelFile.exists() && modelFile.length() == MODEL_BYTES
 
     suspend fun prepare(onProgress: (String) -> Unit = {}) {
         withContext(Dispatchers.IO) {
