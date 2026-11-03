@@ -1,5 +1,6 @@
 package com.obsidian.assistant
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.StatFs
 import dev.ffmpegkit.llama.Llama
@@ -16,7 +17,8 @@ import kotlinx.coroutines.withContext
  * Keep the Android TTS engine separate so voice remains available if the LLM fails.
  */
 class LocalAiEngine(context: Context) {
-    private val modelDirectory = File(context.applicationContext.filesDir, "models/qwen3")
+    private val appContext = context.applicationContext
+    private val modelDirectory = File(appContext.filesDir, "models/qwen3")
     private val modelFile = File(modelDirectory, "Qwen3-1.7B-Q4_K_M.gguf")
     private var model: LlamaModel? = null
 
@@ -100,6 +102,13 @@ class LocalAiEngine(context: Context) {
                 }
             }
 
+            val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            if (memoryInfo.availMem < 1_800_000_000L) {
+                error("CLOSE OTHER APPS • QWEN3 NEEDS ABOUT 1.8 GB AVAILABLE RAM")
+            }
+
             onProgress("LOADING QWEN3 INTO MEMORY")
             val loaded = Llama.loadModel(
                 modelPath = modelFile.absolutePath,
@@ -124,7 +133,7 @@ class LocalAiEngine(context: Context) {
 
         val result = Llama.complete(
             model = activeModel,
-            prompt = userText.trim() + "\\n/no_think",
+            prompt = userText.trim() + "\n/no_think",
             systemPrompt = SYSTEM_PROMPT,
             maxTokens = 160
         )
