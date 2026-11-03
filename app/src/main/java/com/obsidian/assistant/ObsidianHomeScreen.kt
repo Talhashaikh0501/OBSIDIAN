@@ -214,7 +214,7 @@ fun ObsidianHomeScreen() {
                                     val memoryCommand = memoryStore.handleMemoryCommand(result)
                                     val answer = memoryCommand ?: localAiEngine.think(
                                         result,
-                                        memoryStore.buildContext()
+                                        memoryStore.buildContext(excludeLatestMessage = true)
                                     )
                                     memoryStore.saveAssistantMessage(answer)
                                     memoryStatus = memoryStore.status()
