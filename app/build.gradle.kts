@@ -45,7 +45,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1") {
+    implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")\n    implementation("com.github.k2-fsa:sherpa-onnx:v2.0.1") {
         // The Android AAR already contains the Kotlin/JVM API classes.
         // Exclude the separate JVM JAR to prevent duplicate classes.
         exclude(module = "sherpa-onnx-jvm")
