@@ -540,6 +540,47 @@ fun ObsidianHomeScreen() {
                 )
             }
 
+            Spacer(Modifier.height(8.dp))
+            Text(
+                voiceStatus,
+                color = if (voiceReady) IceBlue else DimSilver,
+                fontSize = 7.sp,
+                letterSpacing = 1.2.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
+
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF111820))
+                    .border(1.dp, LiquidSilver.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                    .clickable(enabled = voiceReady && !isSpeaking) {
+                        isSpeaking = true
+                        voiceEngine.speak("I am Obsidian. Systems are online. State your command.") { success ->
+                            scope.launch(Dispatchers.Main) {
+                                isSpeaking = false
+                                if (!success) voiceStatus = "VOICE PLAYBACK FAILED"
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    when {
+                        isSpeaking -> "OBSIDIAN IS SPEAKING"
+                        voiceReady -> "TEST ROBOTIC VOICE"
+                        else -> "OFFLINE VOICE UNAVAILABLE"
+                    },
+                    color = if (voiceReady) ChromeWhite else DimSilver,
+                    fontSize = 9.sp,
+                    letterSpacing = 2.2.sp
+                )
+            }
+
             Spacer(Modifier.weight(1f))
 
             // ACTIVATION CONTROL
