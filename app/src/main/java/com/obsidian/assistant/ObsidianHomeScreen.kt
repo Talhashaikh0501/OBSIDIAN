@@ -92,6 +92,7 @@ fun ObsidianHomeScreen() {
     }
 
     val speechEngine = remember(context) { OfflineSpeechEngine(context.applicationContext) }
+    val voiceEngine = remember(context) { OfflineVoiceEngine(context.applicationContext) }
     val microphoneRecorder = remember { MicrophoneRecorder() }
     val scope = rememberCoroutineScope()
     var engineReady by remember { mutableStateOf(speechEngine.isModelReady()) }
@@ -101,9 +102,21 @@ fun ObsidianHomeScreen() {
         mutableStateOf(if (engineReady) "APEX OFFLINE VOICE READY" else "APEX MODEL SETUP REQUIRES INTERNET")
     }
     var transcript by remember { mutableStateOf("") }
+    var voiceReady by remember { mutableStateOf(false) }
+    var voiceStatus by remember { mutableStateOf("INITIALIZING OFFLINE VOICE") }
+    var isSpeaking by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
-        onDispose { microphoneRecorder.cancel() }
+        voiceEngine.initialize { ready, message ->
+            scope.launch(Dispatchers.Main) {
+                voiceReady = ready
+                voiceStatus = message
+            }
+        }
+        onDispose {
+            microphoneRecorder.cancel()
+            voiceEngine.shutdown()
+        }
     }
 
     val handleActivation: () -> Unit = {
