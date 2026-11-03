@@ -98,7 +98,7 @@ fun ObsidianHomeScreen() {
     var isRecording by remember { mutableStateOf(false) }
     var isBusy by remember { mutableStateOf(false) }
     var engineStatus by remember {
-        mutableStateOf(if (engineReady) "OFFLINE VOICE ENGINE READY" else "FIRST SETUP REQUIRES INTERNET")
+        mutableStateOf(if (engineReady) "APEX OFFLINE VOICE READY" else "APEX MODEL SETUP REQUIRES INTERNET")
     }
     var transcript by remember { mutableStateOf("") }
 
@@ -112,7 +112,7 @@ fun ObsidianHomeScreen() {
             isBusy -> Unit
             !engineReady -> {
                 isBusy = true
-                engineStatus = "PREPARING OFFLINE VOICE ENGINE"
+                engineStatus = "PREPARING HINGLISH APEX MODEL"
                 scope.launch {
                     try {
                         speechEngine.prepare { message ->
@@ -570,7 +570,7 @@ fun ObsidianHomeScreen() {
                         isBusy -> "INITIALIZING..."
                         isRecording -> "TAP TO STOP"
                         engineReady -> "TAP TO SPEAK"
-                        micPermissionGranted -> "PREPARE OFFLINE VOICE"
+                        micPermissionGranted -> "PREPARE APEX VOICE"
                         else -> "ENABLE VOICE ACCESS"
                     },
                     color = Color.White,
@@ -585,8 +585,8 @@ fun ObsidianHomeScreen() {
             Text(
                 when {
                     isRecording -> "SPEAK NOW • MAXIMUM 60 SECONDS"
-                    engineReady -> "ENGLISH + HINDI • ON-DEVICE PROCESSING"
-                    micPermissionGranted -> "ONE-TIME MODEL DOWNLOAD • APPROX. 100 MB"
+                    engineReady -> "ENGLISH + HINGLISH • ON-DEVICE PROCESSING"
+                    micPermissionGranted -> "ONE-TIME APEX DOWNLOAD • APPROX. 1 GB"
                     else -> "TAP TO GRANT MICROPHONE PERMISSION"
                 },
                 color = DimSilver,
