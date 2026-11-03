@@ -13,11 +13,12 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class OfflineSpeechEngine(context: Context) {
-    private val modelDir = File(context.filesDir, "models/whisper-small")
+    private val modelsRoot = File(context.filesDir, "models")
+    private val modelDir = File(modelsRoot, "hi-hinglish-apex")
     private val modelFiles = listOf(
-        ModelFile("small-encoder.int8.onnx", 100_000_000L),
-        ModelFile("small-decoder.int8.onnx", 240_000_000L),
-        ModelFile("small-tokens.txt", 100_000L)
+        ModelFile("encoder.int8.onnx", 500_000_000L),
+        ModelFile("decoder.int8.onnx", 300_000_000L),
+        ModelFile("tokens.txt", 100_000L)
     )
 
     fun isModelReady(): Boolean = modelFiles.all { model ->
@@ -30,20 +31,20 @@ class OfflineSpeechEngine(context: Context) {
             modelFiles.forEachIndexed { index, model ->
                 val destination = File(modelDir, model.name)
                 if (destination.exists() && destination.length() >= model.minimumBytes) {
-                    onProgress("VOICE MODEL ${index + 1}/3 READY")
+                    onProgress("APEX MODEL ${index + 1}/3 READY")
                     return@forEachIndexed
                 }
 
                 destination.delete()
                 val partial = File(modelDir, "${model.name}.part")
                 partial.delete()
-                onProgress("DOWNLOADING VOICE MODEL ${index + 1}/3")
+                onProgress("DOWNLOADING APEX MODEL ${index + 1}/3")
 
                 val connection = (URL(
-                    "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small/resolve/main/${model.name}"
+                    "https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/hi-hinglish-apex/${model.name}"
                 ).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 20_000
-                    readTimeout = 180_000
+                    connectTimeout = 30_000
+                    readTimeout = 300_000
                     instanceFollowRedirects = true
                     setRequestProperty("User-Agent", "OBSIDIAN-Android")
                 }
@@ -51,39 +52,49 @@ class OfflineSpeechEngine(context: Context) {
                 try {
                     connection.connect()
                     if (connection.responseCode !in 200..299) {
-                        throw IllegalStateException("Model download failed for " + model.name + ": HTTP " + connection.responseCode + " " + connection.responseMessage)
+                        throw IllegalStateException(
+                            "Apex download failed for ${model.name}: HTTP ${connection.responseCode} ${connection.responseMessage}"
+                        )
                     }
                     connection.inputStream.use { input ->
                         partial.outputStream().buffered().use { output -> input.copyTo(output) }
                     }
                     if (partial.length() < model.minimumBytes) {
-                        throw IllegalStateException("Downloaded model file is incomplete: ${model.name}")
+                        throw IllegalStateException("Downloaded Apex file is incomplete: ${model.name}")
                     }
                     if (!partial.renameTo(destination)) {
-                        throw IllegalStateException("Could not save model file: ${model.name}")
+                        throw IllegalStateException("Could not save Apex model file: ${model.name}")
                     }
                 } finally {
                     connection.disconnect()
                     partial.delete()
                 }
             }
+
+            check(isModelReady()) { "Apex model validation failed. Existing voice models were kept." }
+
+            // Remove older models only after every Apex file has downloaded and passed validation.
+            listOf("whisper-tiny", "whisper-small").forEach { legacyName ->
+                File(modelsRoot, legacyName).deleteRecursively()
+            }
+            onProgress("APEX READY • OLD MODELS CLEANED")
         }
     }
 
     suspend fun transcribe(samples: FloatArray): String = withContext(Dispatchers.IO) {
         require(samples.size >= 8_000) { "Please record at least half a second of speech." }
-        check(isModelReady()) { "Offline voice model is not installed. Connect once and prepare it." }
+        check(isModelReady()) { "Apex voice model is not installed. Connect once and prepare it." }
 
         val config = OfflineRecognizerConfig(
             featConfig = FeatureConfig(sampleRate = 16_000, featureDim = 80),
             modelConfig = OfflineModelConfig(
                 whisper = OfflineWhisperModelConfig(
-                    encoder = File(modelDir, "small-encoder.int8.onnx").absolutePath,
-                    decoder = File(modelDir, "small-decoder.int8.onnx").absolutePath,
-                    language = "",
+                    encoder = File(modelDir, "encoder.int8.onnx").absolutePath,
+                    decoder = File(modelDir, "decoder.int8.onnx").absolutePath,
+                    language = "hi",
                     task = "transcribe"
                 ),
-                tokens = File(modelDir, "small-tokens.txt").absolutePath,
+                tokens = File(modelDir, "tokens.txt").absolutePath,
                 numThreads = 2,
                 provider = "cpu",
                 modelType = "whisper"
