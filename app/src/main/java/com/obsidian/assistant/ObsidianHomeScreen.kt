@@ -222,12 +222,13 @@ fun ObsidianHomeScreen() {
                                     localAiStatus = if (memoryCommand != null) {
                                         "LOCAL MEMORY COMMAND COMPLETE"
                                     } else {
-                                        "LOCAL RESPONSE GENERATED"
+                                        "QWEN3 COMPLETE • ${localAiEngine.lastInferenceDurationMs} ms"
                                     }
                                     if (neuralReady) {
                                         neuralSpeaking = true
                                         neuralVoiceEngine.speak(answer)
                                         neuralSpeaking = false
+                                        neuralStatus = "SUPERTONIC GENERATED • ${neuralVoiceEngine.lastGenerationDurationMs} ms"
                                     } else {
                                         neuralStatus = "SUPERTONIC VOICE IS STILL LOADING • RESPONSE NOT SPOKEN"
                                     }
