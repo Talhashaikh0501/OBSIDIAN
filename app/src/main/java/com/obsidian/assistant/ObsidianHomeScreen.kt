@@ -95,6 +95,7 @@ fun ObsidianHomeScreen() {
     val voiceEngine = remember(context) { OfflineVoiceEngine(context.applicationContext) }
     val neuralVoiceEngine = remember(context) { NeuralVoiceEngine(context.applicationContext) }
     val localAiEngine = remember(context) { LocalAiEngine(context.applicationContext) }
+    val memoryStore = remember(context) { ObsidianMemory(context.applicationContext) }
     val microphoneRecorder = remember { MicrophoneRecorder() }
     val scope = rememberCoroutineScope()
     var engineReady by remember { mutableStateOf(speechEngine.isModelReady()) }
@@ -113,11 +114,19 @@ fun ObsidianHomeScreen() {
     var neuralStatus by remember { mutableStateOf("ROBOTIC VOICE NOT INSTALLED • APPROX. 145 MB") }
     var localAiReady by remember { mutableStateOf(false) }
     var localAiBusy by remember { mutableStateOf(false) }
+    var memoryStatus by remember { mutableStateOf("INITIALIZING LOCAL MEMORY") }
     var localAiStatus by remember {
         mutableStateOf(if (localAiEngine.isModelDownloaded()) "QWEN3 SAVED • TAP TO LOAD" else "LOCAL AI BRAIN NOT INSTALLED")
     }
 
     DisposableEffect(Unit) {
+        scope.launch {
+            try {
+                memoryStatus = memoryStore.status()
+            } catch (error: Exception) {
+                memoryStatus = "LOCAL MEMORY INITIALIZATION FAILED"
+            }
+        }
         voiceEngine.initialize { ready, message ->
             scope.launch(Dispatchers.Main) {
                 voiceReady = ready
@@ -194,13 +203,27 @@ fun ObsidianHomeScreen() {
                             val result = speechEngine.transcribe(samples)
                             transcript = result.ifBlank { "No speech detected. Please try again." }
                             engineStatus = "LOCAL TRANSCRIPTION COMPLETE"
+                            if (result.isNotBlank()) {
+                                memoryStore.saveUserMessage(result)
+                                memoryStatus = memoryStore.status()
+                            }
                             if (result.isNotBlank() && localAiReady) {
                                 localAiBusy = true
                                 localAiStatus = "OBSIDIAN IS THINKING"
                                 try {
-                                    val answer = localAiEngine.think(result)
+                                    val memoryCommand = memoryStore.handleMemoryCommand(result)
+                                    val answer = memoryCommand ?: localAiEngine.think(
+                                        result,
+                                        memoryStore.buildContext()
+                                    )
+                                    memoryStore.saveAssistantMessage(answer)
+                                    memoryStatus = memoryStore.status()
                                     transcript = "$result\n\n$answer"
-                                    localAiStatus = "LOCAL RESPONSE GENERATED"
+                                    localAiStatus = if (memoryCommand != null) {
+                                        "LOCAL MEMORY COMMAND COMPLETE"
+                                    } else {
+                                        "LOCAL RESPONSE GENERATED"
+                                    }
                                     if (neuralReady) {
                                         neuralSpeaking = true
                                         neuralVoiceEngine.speak(answer)
@@ -727,6 +750,16 @@ fun ObsidianHomeScreen() {
             )
 
             Spacer(Modifier.height(5.dp))
+            Text(
+                memoryStatus,
+                color = IceBlue.copy(alpha = 0.8f),
+                fontSize = 7.sp,
+                letterSpacing = 1.0.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+
+            Spacer(Modifier.height(5.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -756,7 +789,10 @@ fun ObsidianHomeScreen() {
                             localAiStatus = "RUNNING LOCAL AI SELF-TEST"
                             scope.launch {
                                 try {
-                                    val answer = localAiEngine.think("Introduce yourself in one short sentence.")
+                                    val answer = localAiEngine.think(
+                                        "Introduce yourself in one short sentence.",
+                                        memoryStore.buildContext()
+                                    )
                                     transcript = answer
                                     localAiStatus = "LOCAL AI TEST COMPLETE"
                                     if (neuralReady) {
