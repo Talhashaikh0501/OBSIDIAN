@@ -26,6 +26,10 @@ class LocalAiEngine(context: Context) {
     var isReady: Boolean = false
         private set
 
+    @Volatile
+    var lastInferenceDurationMs: Long = 0L
+        private set
+
     fun isModelDownloaded(): Boolean =
         modelFile.exists() && modelFile.length() == MODEL_BYTES
 
@@ -131,6 +135,7 @@ class LocalAiEngine(context: Context) {
         val activeModel = model ?: error("LOCAL AI MODEL IS NOT LOADED")
         require(userText.isNotBlank()) { "I DID NOT RECEIVE A COMMAND" }
 
+        val inferenceStartedAt = android.os.SystemClock.elapsedRealtime()
         val result = Llama.complete(
             model = activeModel,
             prompt = buildString {
@@ -144,8 +149,9 @@ class LocalAiEngine(context: Context) {
                 append("/no_think")
             },
             systemPrompt = SYSTEM_PROMPT,
-            maxTokens = 160
+            maxTokens = 120
         )
+        lastInferenceDurationMs = android.os.SystemClock.elapsedRealtime() - inferenceStartedAt
 
         val answer = result.text
             .substringAfter("</think>", result.text)
