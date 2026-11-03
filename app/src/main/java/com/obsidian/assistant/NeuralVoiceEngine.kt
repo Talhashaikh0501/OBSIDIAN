@@ -33,6 +33,10 @@ class NeuralVoiceEngine(context: Context) {
     var isReady: Boolean = false
         private set
 
+    @Volatile
+    var lastGenerationDurationMs: Long = 0L
+        private set
+
     private data class ModelAsset(val fileName: String, val minimumBytes: Long)
 
     private val assets = listOf(
@@ -177,7 +181,9 @@ class NeuralVoiceEngine(context: Context) {
             numSteps = 8
             extra = mapOf("lang" to "en")
         }
+        val generationStartedAt = android.os.SystemClock.elapsedRealtime()
         val audio = engine.generateWithConfig(text.trim(), generation)
+        lastGenerationDurationMs = android.os.SystemClock.elapsedRealtime() - generationStartedAt
         if (audio.samples.isEmpty() || audio.sampleRate <= 0) {
             return@withContext false
         }
